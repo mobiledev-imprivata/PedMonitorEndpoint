@@ -10,17 +10,38 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    @IBOutlet weak var updateButton: UIButton!
+    @IBOutlet weak var minLabel: UILabel!
+    @IBOutlet weak var maxLabel: UILabel!
+    @IBOutlet weak var currentLabel: UILabel!
+    @IBOutlet weak var intervalSlider: UISlider!
+    @IBOutlet weak var pollingSwitch: UISwitch!
     @IBOutlet weak var connectionLabel: UILabel!
     @IBOutlet weak var dataLabel: UILabel!
     
     private var bluetoothManager: BluetoothManager!
+    
+    private let minInterval = 1
+    private let maxInterval = 30
+    private var currentInterval = 2
+    
+    private var timer: Timer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        updateButton.isEnabled = false
+        minLabel.text = "\(minInterval)"
+        maxLabel.text = "\(maxInterval)"
+        currentLabel.text = "\(currentInterval)"
+
+        intervalSlider.minimumValue = Float(minInterval)
+        intervalSlider.maximumValue = Float(maxInterval)
+        intervalSlider.value = Float(currentInterval)
+        
+        intervalSlider.addTarget(self, action: #selector(intervalSliderDidEndSliding(notification:)), for: ([.touchUpInside,.touchUpOutside]))
+        
+        pollingSwitch.isOn = false
+        pollingSwitch.isEnabled = false
         dataLabel.isHidden = true
         
         bluetoothManager = BluetoothManager()
@@ -31,11 +52,32 @@ class ViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-    @IBAction func updateNow(_ sender: Any) {
-        bluetoothManager.updateNow()
+    
+    @IBAction func intervalSliderChanged(_ sender: Any) {
+        guard let slider = sender as? UISlider else { return }
+        let newInterval = Int(slider.value)
+        if newInterval == currentInterval { return }
+        currentInterval = newInterval
+        currentLabel.text = "\(currentInterval)"
     }
-
+    
+    @objc func intervalSliderDidEndSliding(notification: NSNotification) {
+        print("intervalSliderDidEndSliding \(Int(intervalSlider.value)) \(currentInterval)")
+        updatePolling("dummy")
+    }
+    
+    @IBAction func updatePolling(_ sender: Any) {
+        log("updatePolling to \(pollingSwitch.isOn)")
+        if pollingSwitch.isOn {
+            timer?.invalidate()
+            timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(currentInterval), repeats: true) { _ in
+                self.bluetoothManager.updateNow()
+            }
+        } else {
+            timer?.invalidate()
+            timer = nil
+        }
+    }
 }
 
 extension ViewController: BluetoothManagerDelegate {
@@ -44,11 +86,12 @@ extension ViewController: BluetoothManagerDelegate {
         log("updateConnection \(bluetoothConnection)")
         connectionLabel.text = bluetoothConnection.rawValue.capitalized + (bluetoothConnection == .searching ? "..." : "")
         if bluetoothConnection == .connected {
-            updateButton.isEnabled = true
+            pollingSwitch.isEnabled = true
             dataLabel.isHidden = false
             dataLabel.text = "..."
         } else {
-            updateButton.isEnabled = false
+            pollingSwitch.isOn = false
+            pollingSwitch.isEnabled = false
         }
     }
     

@@ -59,8 +59,10 @@ final class BluetoothManager: NSObject {
     }
     
     func updateNow() {
-        let data = "10.0".data(using: .utf8)!
-        peripheral.writeValue(data, for: setIntervalCharacteristic, type: .withResponse)
+        // let data = "10.0".data(using: .utf8)!
+        // peripheral.writeValue(data, for: setIntervalCharacteristic, type: .withResponse)
+        
+        peripheral.readValue(for: getMotionDataCharacteristic)
     }
     
 }

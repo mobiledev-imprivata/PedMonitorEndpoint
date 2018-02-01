@@ -92,6 +92,8 @@ extension ViewController: BluetoothManagerDelegate {
         } else {
             pollingSwitch.isOn = false
             pollingSwitch.isEnabled = false
+            timer?.invalidate()
+            timer = nil
         }
     }
     

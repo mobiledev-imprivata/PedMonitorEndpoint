@@ -34,6 +34,8 @@ final class BluetoothManager: NSObject {
     private var isPoweredOn = false
     private var scanTimer: Timer!
     
+    private var start = Date()
+    
     var delegate: BluetoothManagerDelegate?
     
     override init() {
@@ -62,6 +64,8 @@ final class BluetoothManager: NSObject {
         // let data = "10.0".data(using: .utf8)!
         // peripheral.writeValue(data, for: setIntervalCharacteristic, type: .withResponse)
         
+        log("calling peripheral.readValue")
+        start = Date()
         peripheral.readValue(for: getMotionDataCharacteristic)
     }
     
@@ -148,15 +152,19 @@ extension BluetoothManager: CBPeripheralDelegate {
         let message = "peripheral didWriteValueFor characteristic " + (error == nil ? "\(characteristic.uuid.uuidString) ok" :  ("error " + error!.localizedDescription))
         log(message)
         guard error == nil else { return }
+        log("calling peripheral.readValue")
+        start = Date()
         peripheral.readValue(for: getMotionDataCharacteristic)
     }
     
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        let intervalString = String(format: "%.6f", -start.timeIntervalSinceNow)
         let message = "peripheral didUpdateValueFor characteristic " + (error == nil ? "\(characteristic.uuid.uuidString) ok" :  ("error " + error!.localizedDescription))
         log(message)
+        log("received motion data in \(intervalString) secs")
         guard error == nil else { return }
         let response = String(data: characteristic.value!, encoding: String.Encoding.utf8)!
-        log(response)
+        // log(response)
         delegate?.updateData(data: response)
     }
     
